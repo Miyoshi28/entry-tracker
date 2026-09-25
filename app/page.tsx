@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-//企業名・締切日・ステータスなど「変化するデータ」を管理する仕組み
+
 type Status = "エントリー済み" | "書類選考中" | "一次面接" | "二次面接" | "最終面接" | "内定" | "不採用";
+type DeadlineType = "エントリーシート締め切り" | "1次面接日" | "2次面接日" | "最終面接日";
 
 type Entry = {
   id: string;
   company: string;
+  deadlineType: DeadlineType;
   deadline: string;
   status: Status;
 };
@@ -21,39 +23,46 @@ const STATUS_OPTIONS: Status[] = [
   "不採用",
 ];
 
+const DEADLINE_TYPE_OPTIONS: DeadlineType[] = [
+  "エントリーシート締め切り",
+  "1次面接日",
+  "2次面接日",
+  "最終面接日",
+];
+
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [company, setCompany] = useState("");
+  const [deadlineType, setDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
   const [deadline, setDeadline] = useState("");
   const [status, setStatus] = useState<Status>("エントリー済み");
 
-  // 起動時にlocalStorageから読み込む
-  // 起動時にlocalStorageから読み込む
   useEffect(() => {
     const saved = localStorage.getItem("entries");
     if (saved) {
       setEntries(JSON.parse(saved));
     }
-    setIsLoaded(true); // ← 読み込み完了をマーク
+    setIsLoaded(true);
   }, []);
 
-  // 読み込みが終わってから、entriesが変わるたびにlocalStorageへ保存
   useEffect(() => {
-    if (!isLoaded) return; // ← 読み込み前は何もしない
+    if (!isLoaded) return;
     localStorage.setItem("entries", JSON.stringify(entries));
   }, [entries, isLoaded]);
-  //addEntry:入力内容から新しいエントリーを作ってリストに追加
+
   const addEntry = () => {
     if (!company || !deadline) return;
     const newEntry: Entry = {
       id: crypto.randomUUID(),
       company,
+      deadlineType,
       deadline,
       status,
     };
     setEntries([...entries, newEntry]);
     setCompany("");
+    setDeadlineType("エントリーシート締め切り");
     setDeadline("");
     setStatus("エントリー済み");
   };
@@ -62,7 +71,6 @@ export default function Home() {
     setEntries(entries.filter((e) => e.id !== id));
   };
 
-  //sorted:締切日が近い順に並べ替え
   const sorted = [...entries].sort(
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   );
@@ -72,29 +80,56 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-6">就活エントリー管理</h1>
 
       <div className="flex flex-col gap-3 mb-8 p-4 border rounded-lg">
-        <input
-          className="border rounded px-3 py-2"
-          placeholder="企業名"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-        />
-        <input
-          className="border rounded px-3 py-2"
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-        />
-        <select
-          className="border rounded px-3 py-2"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as Status)}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <label className="flex flex-col gap-1 text-sm text-gray-600">
+          企業名
+          <input
+            className="border rounded px-3 py-2 text-base text-black"
+            placeholder="例：株式会社サンプル"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-gray-600">
+          締切の種類
+          <select
+            className="border rounded px-3 py-2 text-base text-black"
+            value={deadlineType}
+            onChange={(e) => setDeadlineType(e.target.value as DeadlineType)}
+          >
+            {DEADLINE_TYPE_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-gray-600">
+          締切日
+          <input
+            className="border rounded px-3 py-2 text-base text-black"
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-gray-600">
+          選考状況
+          <select
+            className="border rounded px-3 py-2 text-base text-black"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as Status)}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button
           className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700"
           onClick={addEntry}
@@ -112,7 +147,7 @@ export default function Home() {
             <div>
               <p className="font-semibold">{entry.company}</p>
               <p className="text-sm text-gray-500">
-                締切: {entry.deadline}　|　{entry.status}
+                {entry.deadlineType}: {entry.deadline}　|　選考状況: {entry.status}
               </p>
             </div>
             <button
