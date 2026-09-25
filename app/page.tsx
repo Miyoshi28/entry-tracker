@@ -23,23 +23,26 @@ const STATUS_OPTIONS: Status[] = [
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [company, setCompany] = useState("");
   const [deadline, setDeadline] = useState("");
   const [status, setStatus] = useState<Status>("エントリー済み");
 
+  // 起動時にlocalStorageから読み込む
   // 起動時にlocalStorageから読み込む
   useEffect(() => {
     const saved = localStorage.getItem("entries");
     if (saved) {
       setEntries(JSON.parse(saved));
     }
+    setIsLoaded(true); // ← 読み込み完了をマーク
   }, []);
 
-  // entriesが変わるたびにlocalStorageへ保存
+  // 読み込みが終わってから、entriesが変わるたびにlocalStorageへ保存
   useEffect(() => {
+    if (!isLoaded) return; // ← 読み込み前は何もしない
     localStorage.setItem("entries", JSON.stringify(entries));
-  }, [entries]);
-  
+  }, [entries, isLoaded]);
   //addEntry:入力内容から新しいエントリーを作ってリストに追加
   const addEntry = () => {
     if (!company || !deadline) return;
@@ -58,7 +61,7 @@ export default function Home() {
   const deleteEntry = (id: string) => {
     setEntries(entries.filter((e) => e.id !== id));
   };
-  
+
   //sorted:締切日が近い順に並べ替え
   const sorted = [...entries].sort(
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
