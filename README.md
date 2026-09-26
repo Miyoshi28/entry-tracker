@@ -4,7 +4,7 @@
 
 ## 🔗 デモ
 
-（デプロイ後、ここにURLを記載します）
+https://entry-tracker-bice.vercel.app/
 
 ## 📸 画面イメージ
 
