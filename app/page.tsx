@@ -142,15 +142,15 @@ export default function Home() {
       entries.map((e) =>
         e.id === editingId
           ? {
-              ...e,
-              company: editCompany,
-              deadlineType: editDeadlineType,
-              deadline: `${editDeadlineDate}T${time}`,
-              status: editStatus,
-              progress: STATUSES_WITH_PROGRESS.includes(editStatus)
-                ? (editProgress || "審査中")
-                : undefined,
-            }
+            ...e,
+            company: editCompany,
+            deadlineType: editDeadlineType,
+            deadline: `${editDeadlineDate}T${time}`,
+            status: editStatus,
+            progress: STATUSES_WITH_PROGRESS.includes(editStatus)
+              ? (editProgress || "審査中")
+              : undefined,
+          }
           : e
       )
     );
@@ -161,13 +161,21 @@ export default function Home() {
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   );
 
-  const getDeadlineTextClass = (deadlineStr: string) => {
+  const getDeadlineTextClass = (entry: Entry) => {
+    // ES提出が完了している場合は、緊急度に関わらず落ち着いた色（緑）にする
+    if (entry.deadlineType === "エントリーシート締め切り" && entry.submitted) {
+      return "text-green-600 font-semibold";
+    }
+
     const now = new Date();
-    const deadlineDateTime = new Date(deadlineStr);
+    const deadlineDateTime = new Date(entry.deadline);
     const diffDays =
       (deadlineDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
 
-    if (diffDays <= 3) {
+    if (diffDays < 0) {
+      // 締切を過ぎている場合は、赤ではなくグレー＋打ち消し線にして「期限切れ」を表現
+      return "text-gray-400 line-through";
+    } else if (diffDays <= 3) {
       return "text-red-600 font-semibold";
     } else if (diffDays <= 7) {
       return "text-yellow-600 font-semibold";
@@ -397,10 +405,10 @@ export default function Home() {
                       </span>
                       {!entry.submitted && (
                         <button
-                          className="text-xs font-normal bg-green-600 text-white rounded px-2 py-1 hover:bg-green-700"
+                          className="text-xs font-normal bg-red-600 text-white rounded px-2 py-1 hover:bg-green-700"
                           onClick={() => markSubmitted(entry.id)}
                         >
-                          提出完了
+                          提出
                         </button>
                       )}
                     </>
@@ -408,11 +416,11 @@ export default function Home() {
                 </p>
                 <p className="text-sm">
                   <span className="text-gray-500">{entry.deadlineType}: </span>
-                  <span className={getDeadlineTextClass(entry.deadline)}>
+                  <span className={getDeadlineTextClass(entry)}>
                     {formatDeadline(entry.deadline)}
                   </span>
                   <span className="text-gray-500">
-                    　|　選考状況: {formatStatus(entry)}
+                    |　選考状況: {formatStatus(entry)}
                   </span>
                 </p>
               </div>
