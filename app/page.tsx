@@ -22,7 +22,8 @@ type Entry = {
   deadlineType: DeadlineType;
   deadline: string; // "YYYY-MM-DDTHH:mm" 形式
   status: Status;
-  progress?: Progress; // 「審査中」「通過」。対象外の状況では未設定
+  progress?: Progress;
+  submitted: boolean; // ES提出済みかどうか（ES締切以外では使わない）
 };
 
 const STATUS_OPTIONS: Status[] = [
@@ -36,7 +37,6 @@ const STATUS_OPTIONS: Status[] = [
   "不採用",
 ];
 
-// 「審査中／通過」の進捗を持つ選考状況（結果が決まっている状況には不要なので除外）
 const STATUSES_WITH_PROGRESS: Status[] = [
   "エントリー済み",
   "書類選考中",
@@ -58,7 +58,6 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 新規追加フォーム用の状態
   const [company, setCompany] = useState("");
   const [deadlineType, setDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
   const [deadlineDate, setDeadlineDate] = useState("");
@@ -66,7 +65,6 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("エントリー前");
   const [progress, setProgress] = useState<Progress | "">("");
 
-  // 編集中のエントリーIDと、編集フォーム用の状態
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCompany, setEditCompany] = useState("");
   const [editDeadlineType, setEditDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
@@ -100,6 +98,7 @@ export default function Home() {
       progress: STATUSES_WITH_PROGRESS.includes(status)
         ? (progress || "審査中")
         : undefined,
+      submitted: false, // 追加時は必ず「未」からスタート
     };
     setEntries([...entries, newEntry]);
     setCompany("");
@@ -114,7 +113,13 @@ export default function Home() {
     setEntries(entries.filter((e) => e.id !== id));
   };
 
-  // 企業名をクリックした時、編集フォームに現在の値をセットして開く
+  // 「提出完了」ボタンを押した時、そのエントリーのsubmittedをtrueにする
+  const markSubmitted = (id: string) => {
+    setEntries(
+      entries.map((e) => (e.id === id ? { ...e, submitted: true } : e))
+    );
+  };
+
   const startEdit = (entry: Entry) => {
     setEditingId(entry.id);
     setEditCompany(entry.company);
@@ -173,7 +178,6 @@ export default function Home() {
 
   const formatDeadline = (deadlineStr: string) => deadlineStr.replace("T", " ");
 
-  // 「書類選考中 通過」のように、選考状況と進捗を半角スペース1個でつなげて表示
   const formatStatus = (entry: Entry) =>
     entry.progress ? `${entry.status} ${entry.progress}` : entry.status;
 
@@ -272,7 +276,6 @@ export default function Home() {
       <ul className="flex flex-col gap-2">
         {sorted.map((entry) =>
           editingId === entry.id ? (
-            // 編集モード
             <li
               key={entry.id}
               className="flex flex-col gap-3 border-2 border-blue-300 rounded-lg px-4 py-3 bg-blue-50"
@@ -374,18 +377,34 @@ export default function Home() {
               </div>
             </li>
           ) : (
-            // 通常表示モード
             <li
               key={entry.id}
               className="flex justify-between items-center border rounded-lg px-4 py-3"
             >
               <div>
-                <p
-                  className="font-semibold cursor-pointer hover:underline"
-                  onClick={() => startEdit(entry)}
-                  title="クリックして編集"
-                >
-                  {entry.company}
+                <p className="font-semibold flex items-center gap-2">
+                  <span
+                    className="cursor-pointer hover:underline"
+                    onClick={() => startEdit(entry)}
+                    title="クリックして編集"
+                  >
+                    {entry.company}
+                  </span>
+                  {entry.deadlineType === "エントリーシート締め切り" && (
+                    <>
+                      <span className="text-sm font-normal text-gray-500">
+                        {entry.submitted ? "〇" : "未"}
+                      </span>
+                      {!entry.submitted && (
+                        <button
+                          className="text-xs font-normal bg-green-600 text-white rounded px-2 py-1 hover:bg-green-700"
+                          onClick={() => markSubmitted(entry.id)}
+                        >
+                          提出完了
+                        </button>
+                      )}
+                    </>
+                  )}
                 </p>
                 <p className="text-sm">
                   <span className="text-gray-500">{entry.deadlineType}: </span>
