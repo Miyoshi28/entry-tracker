@@ -2,18 +2,28 @@
 
 import { useState, useEffect } from "react";
 
-type Status = "エントリー済み" | "書類選考中" | "一次面接" | "二次面接" | "最終面接" | "内定" | "不採用";
+type Status =
+  | "エントリー前"
+  | "エントリー済み"
+  | "書類選考中"
+  | "一次面接"
+  | "二次面接"
+  | "最終面接"
+  | "内定"
+  | "不採用";
+
 type DeadlineType = "エントリーシート締め切り" | "1次面接日" | "2次面接日" | "最終面接日";
 
 type Entry = {
   id: string;
   company: string;
   deadlineType: DeadlineType;
-  deadline: string;
+  deadline: string; // "YYYY-MM-DDTHH:mm" 形式
   status: Status;
 };
 
 const STATUS_OPTIONS: Status[] = [
+  "エントリー前",
   "エントリー済み",
   "書類選考中",
   "一次面接",
@@ -35,8 +45,9 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [company, setCompany] = useState("");
   const [deadlineType, setDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
-  const [deadline, setDeadline] = useState("");
-  const [status, setStatus] = useState<Status>("エントリー済み");
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [deadlineTime, setDeadlineTime] = useState("23:59");
+  const [status, setStatus] = useState<Status>("エントリー前");
 
   useEffect(() => {
     const saved = localStorage.getItem("entries");
@@ -52,19 +63,21 @@ export default function Home() {
   }, [entries, isLoaded]);
 
   const addEntry = () => {
-    if (!company || !deadline) return;
+    if (!company || !deadlineDate) return;
+    const time = deadlineTime || "23:59";
     const newEntry: Entry = {
       id: crypto.randomUUID(),
       company,
       deadlineType,
-      deadline,
+      deadline: `${deadlineDate}T${time}`,
       status,
     };
     setEntries([...entries, newEntry]);
     setCompany("");
     setDeadlineType("エントリーシート締め切り");
-    setDeadline("");
-    setStatus("エントリー済み");
+    setDeadlineDate("");
+    setDeadlineTime("23:59");
+    setStatus("エントリー前");
   };
 
   const deleteEntry = (id: string) => {
@@ -74,6 +87,25 @@ export default function Home() {
   const sorted = [...entries].sort(
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   );
+
+  // 締切「日時」までの残り時間に応じて、文字色だけを返す
+  const getDeadlineTextClass = (deadlineStr: string) => {
+    const now = new Date();
+    const deadlineDateTime = new Date(deadlineStr);
+    const diffDays =
+      (deadlineDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays <= 3) {
+      return "text-red-600 font-semibold";
+    } else if (diffDays <= 7) {
+      return "text-yellow-600 font-semibold";
+    } else {
+      return "text-gray-500";
+    }
+  };
+
+  // "2026-10-01T23:59" → "2026-10-01 23:59" の見た目に整形
+  const formatDeadline = (deadlineStr: string) => deadlineStr.replace("T", " ");
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -105,15 +137,27 @@ export default function Home() {
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-gray-600">
-          締切日
-          <input
-            className="border rounded px-3 py-2 text-base text-black"
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
-        </label>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 text-sm text-gray-600 flex-1">
+            締切日
+            <input
+              className="border rounded px-3 py-2 text-base text-black"
+              type="date"
+              value={deadlineDate}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm text-gray-600 flex-1">
+            締切時刻（未入力なら23:59）
+            <input
+              className="border rounded px-3 py-2 text-base text-black"
+              type="time"
+              value={deadlineTime}
+              onChange={(e) => setDeadlineTime(e.target.value)}
+            />
+          </label>
+        </div>
 
         <label className="flex flex-col gap-1 text-sm text-gray-600">
           選考状況
@@ -146,8 +190,16 @@ export default function Home() {
           >
             <div>
               <p className="font-semibold">{entry.company}</p>
-              <p className="text-sm text-gray-500">
-                {entry.deadlineType}: {entry.deadline}　|　選考状況: {entry.status}
+              <p className="text-sm">
+                <span className="text-gray-500">
+                  {entry.deadlineType}:{" "}
+                </span>
+                <span className={getDeadlineTextClass(entry.deadline)}>
+                  {formatDeadline(entry.deadline)}
+                </span>
+                <span className="text-gray-500">
+                  　|　選考状況: {entry.status}
+                </span>
               </p>
             </div>
             <button
