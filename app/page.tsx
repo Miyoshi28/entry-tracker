@@ -12,6 +12,8 @@ type Status =
   | "内定"
   | "不採用";
 
+type Progress = "審査中" | "通過";
+
 type DeadlineType = "エントリーシート締め切り" | "1次面接日" | "2次面接日" | "最終面接日";
 
 type Entry = {
@@ -20,6 +22,7 @@ type Entry = {
   deadlineType: DeadlineType;
   deadline: string; // "YYYY-MM-DDTHH:mm" 形式
   status: Status;
+  progress?: Progress; // 「審査中」「通過」。対象外の状況では未設定
 };
 
 const STATUS_OPTIONS: Status[] = [
@@ -33,6 +36,17 @@ const STATUS_OPTIONS: Status[] = [
   "不採用",
 ];
 
+// 「審査中／通過」の進捗を持つ選考状況（結果が決まっている状況には不要なので除外）
+const STATUSES_WITH_PROGRESS: Status[] = [
+  "エントリー済み",
+  "書類選考中",
+  "一次面接",
+  "二次面接",
+  "最終面接",
+];
+
+const PROGRESS_OPTIONS: Progress[] = ["審査中", "通過"];
+
 const DEADLINE_TYPE_OPTIONS: DeadlineType[] = [
   "エントリーシート締め切り",
   "1次面接日",
@@ -43,11 +57,23 @@ const DEADLINE_TYPE_OPTIONS: DeadlineType[] = [
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // 新規追加フォーム用の状態
   const [company, setCompany] = useState("");
   const [deadlineType, setDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("23:59");
   const [status, setStatus] = useState<Status>("エントリー前");
+  const [progress, setProgress] = useState<Progress | "">("");
+
+  // 編集中のエントリーIDと、編集フォーム用の状態
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editCompany, setEditCompany] = useState("");
+  const [editDeadlineType, setEditDeadlineType] = useState<DeadlineType>("エントリーシート締め切り");
+  const [editDeadlineDate, setEditDeadlineDate] = useState("");
+  const [editDeadlineTime, setEditDeadlineTime] = useState("23:59");
+  const [editStatus, setEditStatus] = useState<Status>("エントリー前");
+  const [editProgress, setEditProgress] = useState<Progress | "">("");
 
   useEffect(() => {
     const saved = localStorage.getItem("entries");
@@ -71,6 +97,9 @@ export default function Home() {
       deadlineType,
       deadline: `${deadlineDate}T${time}`,
       status,
+      progress: STATUSES_WITH_PROGRESS.includes(status)
+        ? (progress || "審査中")
+        : undefined,
     };
     setEntries([...entries, newEntry]);
     setCompany("");
@@ -78,17 +107,55 @@ export default function Home() {
     setDeadlineDate("");
     setDeadlineTime("23:59");
     setStatus("エントリー前");
+    setProgress("");
   };
 
   const deleteEntry = (id: string) => {
     setEntries(entries.filter((e) => e.id !== id));
   };
 
+  // 企業名をクリックした時、編集フォームに現在の値をセットして開く
+  const startEdit = (entry: Entry) => {
+    setEditingId(entry.id);
+    setEditCompany(entry.company);
+    setEditDeadlineType(entry.deadlineType);
+    const [datePart, timePart] = entry.deadline.split("T");
+    setEditDeadlineDate(datePart);
+    setEditDeadlineTime(timePart || "23:59");
+    setEditStatus(entry.status);
+    setEditProgress(entry.progress ?? "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = () => {
+    if (!editCompany || !editDeadlineDate) return;
+    const time = editDeadlineTime || "23:59";
+    setEntries(
+      entries.map((e) =>
+        e.id === editingId
+          ? {
+              ...e,
+              company: editCompany,
+              deadlineType: editDeadlineType,
+              deadline: `${editDeadlineDate}T${time}`,
+              status: editStatus,
+              progress: STATUSES_WITH_PROGRESS.includes(editStatus)
+                ? (editProgress || "審査中")
+                : undefined,
+            }
+          : e
+      )
+    );
+    setEditingId(null);
+  };
+
   const sorted = [...entries].sort(
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   );
 
-  // 締切「日時」までの残り時間に応じて、文字色だけを返す
   const getDeadlineTextClass = (deadlineStr: string) => {
     const now = new Date();
     const deadlineDateTime = new Date(deadlineStr);
@@ -104,8 +171,11 @@ export default function Home() {
     }
   };
 
-  // "2026-10-01T23:59" → "2026-10-01 23:59" の見た目に整形
   const formatDeadline = (deadlineStr: string) => deadlineStr.replace("T", " ");
+
+  // 「書類選考中 通過」のように、選考状況と進捗を半角スペース1個でつなげて表示
+  const formatStatus = (entry: Entry) =>
+    entry.progress ? `${entry.status} ${entry.progress}` : entry.status;
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -174,6 +244,23 @@ export default function Home() {
           </select>
         </label>
 
+        {STATUSES_WITH_PROGRESS.includes(status) && (
+          <label className="flex flex-col gap-1 text-sm text-gray-600">
+            進捗
+            <select
+              className="border rounded px-3 py-2 text-base text-black"
+              value={progress}
+              onChange={(e) => setProgress(e.target.value as Progress)}
+            >
+              {PROGRESS_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <button
           className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700"
           onClick={addEntry}
@@ -183,33 +270,142 @@ export default function Home() {
       </div>
 
       <ul className="flex flex-col gap-2">
-        {sorted.map((entry) => (
-          <li
-            key={entry.id}
-            className="flex justify-between items-center border rounded-lg px-4 py-3"
-          >
-            <div>
-              <p className="font-semibold">{entry.company}</p>
-              <p className="text-sm">
-                <span className="text-gray-500">
-                  {entry.deadlineType}:{" "}
-                </span>
-                <span className={getDeadlineTextClass(entry.deadline)}>
-                  {formatDeadline(entry.deadline)}
-                </span>
-                <span className="text-gray-500">
-                  　|　選考状況: {entry.status}
-                </span>
-              </p>
-            </div>
-            <button
-              className="text-red-500 hover:text-red-700"
-              onClick={() => deleteEntry(entry.id)}
+        {sorted.map((entry) =>
+          editingId === entry.id ? (
+            // 編集モード
+            <li
+              key={entry.id}
+              className="flex flex-col gap-3 border-2 border-blue-300 rounded-lg px-4 py-3 bg-blue-50"
             >
-              削除
-            </button>
-          </li>
-        ))}
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                企業名
+                <input
+                  className="border rounded px-3 py-2 text-base text-black"
+                  value={editCompany}
+                  onChange={(e) => setEditCompany(e.target.value)}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                締切の種類
+                <select
+                  className="border rounded px-3 py-2 text-base text-black"
+                  value={editDeadlineType}
+                  onChange={(e) =>
+                    setEditDeadlineType(e.target.value as DeadlineType)
+                  }
+                >
+                  {DEADLINE_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex gap-3">
+                <label className="flex flex-col gap-1 text-sm text-gray-600 flex-1">
+                  締切日
+                  <input
+                    className="border rounded px-3 py-2 text-base text-black"
+                    type="date"
+                    value={editDeadlineDate}
+                    onChange={(e) => setEditDeadlineDate(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-gray-600 flex-1">
+                  締切時刻
+                  <input
+                    className="border rounded px-3 py-2 text-base text-black"
+                    type="time"
+                    value={editDeadlineTime}
+                    onChange={(e) => setEditDeadlineTime(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                選考状況
+                <select
+                  className="border rounded px-3 py-2 text-base text-black"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as Status)}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {STATUSES_WITH_PROGRESS.includes(editStatus) && (
+                <label className="flex flex-col gap-1 text-sm text-gray-600">
+                  進捗
+                  <select
+                    className="border rounded px-3 py-2 text-base text-black"
+                    value={editProgress}
+                    onChange={(e) =>
+                      setEditProgress(e.target.value as Progress)
+                    }
+                  >
+                    {PROGRESS_OPTIONS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700"
+                  onClick={saveEdit}
+                >
+                  保存
+                </button>
+                <button
+                  className="border rounded px-4 py-2 hover:bg-gray-100"
+                  onClick={cancelEdit}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </li>
+          ) : (
+            // 通常表示モード
+            <li
+              key={entry.id}
+              className="flex justify-between items-center border rounded-lg px-4 py-3"
+            >
+              <div>
+                <p
+                  className="font-semibold cursor-pointer hover:underline"
+                  onClick={() => startEdit(entry)}
+                  title="クリックして編集"
+                >
+                  {entry.company}
+                </p>
+                <p className="text-sm">
+                  <span className="text-gray-500">{entry.deadlineType}: </span>
+                  <span className={getDeadlineTextClass(entry.deadline)}>
+                    {formatDeadline(entry.deadline)}
+                  </span>
+                  <span className="text-gray-500">
+                    　|　選考状況: {formatStatus(entry)}
+                  </span>
+                </p>
+              </div>
+              <button
+                className="text-red-500 hover:text-red-700"
+                onClick={() => deleteEntry(entry.id)}
+              >
+                削除
+              </button>
+            </li>
+          )
+        )}
       </ul>
 
       {sorted.length === 0 && (
