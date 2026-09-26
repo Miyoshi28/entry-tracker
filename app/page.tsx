@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 type Status =
   | "エントリー前"
   | "エントリー済み"
-  | "書類選考中"
+  | "書類選考"
   | "一次面接"
   | "二次面接"
   | "最終面接"
@@ -29,7 +29,7 @@ type Entry = {
 const STATUS_OPTIONS: Status[] = [
   "エントリー前",
   "エントリー済み",
-  "書類選考中",
+  "書類選考",
   "一次面接",
   "二次面接",
   "最終面接",
@@ -39,7 +39,7 @@ const STATUS_OPTIONS: Status[] = [
 
 const STATUSES_WITH_PROGRESS: Status[] = [
   "エントリー済み",
-  "書類選考中",
+  "書類選考",
   "一次面接",
   "二次面接",
   "最終面接",
@@ -410,7 +410,7 @@ export default function Home() {
                       </span>
                       {!entry.submitted && (
                         <button
-                          className="text-xs font-normal bg-gray-600 text-white rounded px-2 py-1 hover:bg-green-700"
+                          className="text-xs font-normal bg-gray-700 text-white rounded px-2 py-1 hover:bg-green-700"
                           onClick={() => markSubmitted(entry.id)}
                         >
                           提出

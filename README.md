@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 就活エントリー管理システム (Entry Tracker)
 
-## Getting Started
+就職活動における「企業ごとの選考状況」「エントリーシートの締切」「面接日程」を一元管理するためのWebアプリです。
 
-First, run the development server:
+## 🔗 デモ
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+（デプロイ後、ここにURLを記載します）
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📸 画面イメージ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+（ここにスクリーンショットを貼ります）
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 💡 開発の背景
 
-## Learn More
+就職活動中、複数の企業に対して「エントリーシートの締切」「一次面接・二次面接の日程」「現在の選考状況」がバラバラに存在し、管理が煩雑になっていました。既存のスプレッドシート等では「締切が近いものを一目で把握する」「進捗をひと目で分かる形にする」ことが難しかったため、自分の使いやすさを追求したツールを自作しました。
 
-To learn more about Next.js, take a look at the following resources:
+## ✨ 主な機能
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 企業ごとに「締切の種類（エントリーシート締切／各面接日）」「締切日時」「選考状況」を登録
+- 締切の緊急度に応じた色分け表示（3日以内：赤／1週間以内：黄／超過：グレー打ち消し線）
+- エントリーシートの提出状況管理（未提出／提出済みをワンクリックで切り替え）
+- 未提出かつ締切が近い順に自動で並び替え
+- 登録内容をクリックしてその場で編集可能
+- ブラウザの`localStorage`にデータを保存（サーバー不要、個人のブラウザ内で完結）
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠 使用技術
 
-## Deploy on Vercel
+- Next.js (App Router)
+- React
+- TypeScript
+- Tailwind CSS
+- Vercel（デプロイ）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🚧 今後追加したい機能
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- データベース連携による複数デバイス間でのデータ同期
+- 締切が近づいた際のリマインダー通知
+- カレンダー形式での表示
+
+## 🧑‍💻 開発者
+
+Miyoshi28
