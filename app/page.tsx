@@ -157,9 +157,14 @@ export default function Home() {
     setEditingId(null);
   };
 
-  const sorted = [...entries].sort(
-    (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-  );
+  const sorted = [...entries].sort((a, b) => {
+    // undefinedも含めて確実に0か1にする（!!で真偽値に変換してから数値化）
+    const aSubmitted = a.submitted ? 1 : 0;
+    const bSubmitted = b.submitted ? 1 : 0;
+    if (aSubmitted !== bSubmitted) return aSubmitted - bSubmitted;
+
+    return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+  });
 
   const getDeadlineTextClass = (entry: Entry) => {
     // ES提出が完了している場合は、緊急度に関わらず落ち着いた色（緑）にする
@@ -405,7 +410,7 @@ export default function Home() {
                       </span>
                       {!entry.submitted && (
                         <button
-                          className="text-xs font-normal bg-red-600 text-white rounded px-2 py-1 hover:bg-green-700"
+                          className="text-xs font-normal bg-gray-600 text-white rounded px-2 py-1 hover:bg-green-700"
                           onClick={() => markSubmitted(entry.id)}
                         >
                           提出
