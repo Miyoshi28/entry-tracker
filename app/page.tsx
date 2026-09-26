@@ -110,11 +110,21 @@ export default function Home() {
   };
 
   const deleteEntry = (id: string) => {
+    const target = entries.find((e) => e.id === id);
+    const ok = window.confirm(
+      `「${target?.company ?? "このエントリー"}」を本当に削除しますか？`
+    );
+    if (!ok) return;
     setEntries(entries.filter((e) => e.id !== id));
   };
 
   // 「提出完了」ボタンを押した時、そのエントリーのsubmittedをtrueにする
   const markSubmitted = (id: string) => {
+    const target = entries.find((e) => e.id === id);
+    const ok = window.confirm(
+      `「${target?.company ?? "このエントリー"}」を提出済みにしますか？`
+    );
+    if (!ok) return;
     setEntries(
       entries.map((e) => (e.id === id ? { ...e, submitted: true } : e))
     );
