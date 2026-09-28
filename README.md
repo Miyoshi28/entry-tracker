@@ -8,7 +8,7 @@ https://entry-tracker-bice.vercel.app/
 
 ## 📸 画面イメージ
 
-（ここにスクリーンショットを貼ります）
+![就活エントリー管理の画面](docs/screenshot.png)
 
 ## 💡 開発の背景
 
